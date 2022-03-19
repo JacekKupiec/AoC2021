@@ -1,4 +1,5 @@
 use std::io;
+use crate::VertexStatus::{NotVisited, Visited};
 
 fn is_low_point(board : &Vec<Vec<u8>>, first_dim_idx : usize, second_dim_idx: usize) -> bool {
     let low_point_candidate = board[first_dim_idx][second_dim_idx];
@@ -34,8 +35,64 @@ fn is_low_point(board : &Vec<Vec<u8>>, first_dim_idx : usize, second_dim_idx: us
     return true;
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum VertexStatus {
+    NotVisited,
+    Visited
+}
+
+fn get_basin_size(board : &Vec<Vec<u8>>, first_dim_idx : usize, second_dim_idx : usize) -> usize {
+    // use std::iter::repeat;
+    // let alternative_vec_creation : Vec<_> = repeat(board[0].len())
+    //     .take(board.len())
+    //     .map(|row_length| vec![NotVisited; row_length])
+    //     .collect();
+
+    let mut vertices_statuses: Vec<Vec<VertexStatus>> = Vec::with_capacity(board.len());
+    let row_size = board[0].len();
+
+    for _ in 0..board.len() {
+        vertices_statuses.push(vec![NotVisited; row_size]);
+    }
+
+    let mut stack = vec![(first_dim_idx, second_dim_idx)];
+    let mut counter = 0;
+
+    while !stack.is_empty() {
+        if let Some((x, y)) = stack.pop() {
+            if board[x][y] >= 9 || vertices_statuses[x][y] == Visited {
+                continue;
+            }
+
+            vertices_statuses[x][y] = Visited;
+            counter += 1;
+
+            if y >= 1 {// one step left
+                stack.push((x, y - 1));
+            }
+
+            if x >= 1 { // one step up
+                stack.push((x -1, y));
+            }
+
+            if y + 1 < board[x].len() {  // one step right
+                stack.push((x, y + 1));
+            }
+
+            if x + 1 < board.len() {
+                stack.push((x + 1, y));
+            }
+        }
+        else {
+            panic!("Can't pop from stack despite being not empty!");
+        }
+    }
+
+    return counter;
+}
+
 fn main() {
-    let mut board : Vec<Vec<u8>> = Vec::new();
+    let mut board : Vec<_> = Vec::new();
     let mut buffer = String::new();
 
     while let Ok(bytes_read) = io::stdin().read_line(&mut buffer) {
@@ -48,15 +105,18 @@ fn main() {
         buffer.clear();
     }
 
-    let mut cumulative_risk = 0;
+    let mut basin_sizes : Vec<usize> = Vec::new();
 
     for i in 0..board.len() {
         for j in 0..board[i].len() {
             if is_low_point(&board, i, j) {
-                cumulative_risk += board[i][j] as u32 + 1;
+                let basin_size = get_basin_size(&board, i, j);
+                basin_sizes.push(basin_size);
             }
         }
     }
 
-    println!("{}", cumulative_risk);
+    basin_sizes.sort();
+    basin_sizes.reverse();
+    println!("{} * {} * {} = {}", basin_sizes[0], basin_sizes[1], basin_sizes[2], basin_sizes[0] * basin_sizes[1] * basin_sizes[2]);
 }
