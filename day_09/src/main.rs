@@ -41,19 +41,12 @@ enum VertexStatus {
     Visited
 }
 
-fn get_basin_size(board : &Vec<Vec<u8>>, first_dim_idx : usize, second_dim_idx : usize) -> usize {
+fn get_basin_size(board : &Vec<Vec<u8>>, vertices_statuses : &mut Vec<Vec<VertexStatus>>, first_dim_idx : usize, second_dim_idx : usize) -> usize {
     // use std::iter::repeat;
     // let alternative_vec_creation : Vec<_> = repeat(board[0].len())
     //     .take(board.len())
     //     .map(|row_length| vec![NotVisited; row_length])
     //     .collect();
-
-    let mut vertices_statuses: Vec<Vec<VertexStatus>> = Vec::with_capacity(board.len());
-    let row_size = board[0].len();
-
-    for _ in 0..board.len() {
-        vertices_statuses.push(vec![NotVisited; row_size]);
-    }
 
     let mut stack = vec![(first_dim_idx, second_dim_idx)];
     let mut counter = 0;
@@ -105,12 +98,19 @@ fn main() {
         buffer.clear();
     }
 
+    let mut vertices_statuses: Vec<Vec<VertexStatus>> = Vec::with_capacity(board.len());
+    let row_size = board[0].len();
+
+    for _ in 0..board.len() {
+        vertices_statuses.push(vec![NotVisited; row_size]);
+    }
+
     let mut basin_sizes : Vec<usize> = Vec::new();
 
     for i in 0..board.len() {
         for j in 0..board[i].len() {
             if is_low_point(&board, i, j) {
-                let basin_size = get_basin_size(&board, i, j);
+                let basin_size = get_basin_size(&board, &mut vertices_statuses, i, j);
                 basin_sizes.push(basin_size);
             }
         }
