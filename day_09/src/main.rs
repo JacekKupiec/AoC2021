@@ -42,12 +42,6 @@ enum VertexStatus {
 }
 
 fn get_basin_size(board : &Vec<Vec<u8>>, vertices_statuses : &mut Vec<Vec<VertexStatus>>, first_dim_idx : usize, second_dim_idx : usize) -> usize {
-    // use std::iter::repeat;
-    // let alternative_vec_creation : Vec<_> = repeat(board[0].len())
-    //     .take(board.len())
-    //     .map(|row_length| vec![NotVisited; row_length])
-    //     .collect();
-
     let mut stack = vec![(first_dim_idx, second_dim_idx)];
     let mut counter = 0;
 
