@@ -7,7 +7,7 @@ fn is_node_auxiliary(node_name: &str) -> bool {
     return node_name.ends_with("0");
 }
 
-fn dfs(graph: &HashMap<String, Vec<String>>, label: &str, visited: &mut HashSet<String>, is_auxiliary_node_used: bool) -> i32 {
+fn dfs(graph: &HashMap<&str, Vec<String>>, label: &str, visited: &mut HashSet<String>, is_auxiliary_node_used: bool) -> i32 {
     if label == "end" {
         return 1;
     }
@@ -45,7 +45,7 @@ fn dfs(graph: &HashMap<String, Vec<String>>, label: &str, visited: &mut HashSet<
 fn main() {
     let input = io::stdin();
     let mut buffer = String::new();
-    let mut graph: HashMap<String, Vec<String>> = HashMap::new();
+    let mut graph: HashMap<&str, Vec<String>> = HashMap::new();
 
     while let Ok(bytes_read) = input.read_line(&mut buffer) {
         if bytes_read == 0 {
@@ -56,13 +56,13 @@ fn main() {
             if let Some(neighbour_list) = graph.get_mut(source_vertex_name) {
                 neighbour_list.push(target_vertex_name.to_string());
             } else {
-                graph.insert(source_vertex_name.to_string(), vec![target_vertex_name.to_string()]);
+                graph.insert(source_vertex_name, vec![target_vertex_name.to_string()]);
             }
 
             if let Some(neighbour_list) = graph.get_mut(target_vertex_name) {
                 neighbour_list.push(source_vertex_name.to_string());
             } else {
-                graph.insert(target_vertex_name.to_string(), vec![source_vertex_name.to_string()]);
+                graph.insert(target_vertex_name, vec![source_vertex_name.to_string()]);
             }
         }
 
@@ -70,22 +70,22 @@ fn main() {
     }
 
     let lowercase_nodes : Vec<_> = graph.keys()
-        .filter(|label| label.chars().any(|c| c.is_lowercase()) && *label != "start" && *label != "end")
+        .filter(|label| label.chars().any(|c| c.is_lowercase()) && **label != "start" && **label != "end")
         .map(|label| label.to_string())
         .collect();
 
     for label in lowercase_nodes {
-        let neighbours = graph[&label].clone();
+        let neighbours = graph[label.as_str()].clone();
 
         for neighbour in neighbours.iter() {
             let new_label = format!("{}{}", label, 0);
-            let neighbours_of_neighbour = graph.get_mut(neighbour).unwrap();
+            let neighbours_of_neighbour = graph.get_mut(neighbour.as_str()).unwrap();
 
             neighbours_of_neighbour.push(new_label);
         }
 
         let new_label = format!("{}{}", label, 0);
-        graph.insert(new_label, neighbours.clone());
+        graph.insert(new_label.as_str(), neighbours.clone());
     }
 
     println!("Wczytany graf z modyfikacjami:\n{:?}", graph);
