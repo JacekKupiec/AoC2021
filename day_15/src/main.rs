@@ -1,6 +1,14 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::cmp::min;
+use std::cmp::{min, Ordering};
+use std::collections::BinaryHeap;
+
+/*
+    small: 40
+    medium: 315
+    big: 403
+    large: ???
+ */
 
 #[derive(Debug)]
 struct Edge {
@@ -8,8 +16,20 @@ struct Edge {
     target: usize
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd)]
+struct PriorityQueueItem {
+    distance: u32,
+    vertex: usize
+}
+
+impl Ord for PriorityQueueItem {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.distance.cmp(&other.distance).reverse()
+    }
+}
+
 fn main() {
-    let input = File::open("D:\\source\\Rust\\AoC 2021\\day_15\\src\\small_input.txt").unwrap();
+    let input = File::open("D:\\source\\Rust\\AoC 2021\\day_15\\src\\medium_input.txt").unwrap();
     let mut reader = BufReader::new(input);
     let mut buffer = String::new();
     let mut risk_level_map = Vec::new();
@@ -26,9 +46,7 @@ fn main() {
     }
 
     let graph = build_graph(&risk_level_map);
-
-    println!("{:?}", graph);
-    println!("The distance between source and destination: {}", calculate_distance(&graph, 0, graph.len()));
+    println!("The distance between source and destination: {}", calculate_distance_priority_queue(&graph, 0, graph.len() - 1));
 }
 
 fn build_graph(risk_level_map : &Vec<Vec<u8>>) -> Vec<Vec<Edge>> {
@@ -79,7 +97,46 @@ fn build_graph(risk_level_map : &Vec<Vec<u8>>) -> Vec<Vec<Edge>> {
     return graph;
 }
 
-fn calculate_distance(graph: &Vec<Vec<Edge>>, source: usize, target: usize) -> u32 {
+fn calculate_distance_priority_queue(graph: &Vec<Vec<Edge>>, source: usize, target: usize) -> u32 {
+    let mut distances = vec![u32::MAX; graph.len()];
+    let mut visit_statuses = vec![false; graph.len()];
+    let mut current_vertex = source;
+    let mut priority_queue = BinaryHeap::with_capacity(graph.len());
+
+    distances[source] = 0;
+    priority_queue.push(PriorityQueueItem {
+        distance: 0,
+        vertex: source
+    });
+
+    while !priority_queue.is_empty() {
+        let current_vertex = priority_queue.pop().expect("Pop must work on not empty queue");
+
+        if current_vertex.vertex == target {
+            return current_vertex.distance;
+        }
+
+        visit_statuses[current_vertex.vertex] = true;
+
+        for edge in &graph[current_vertex.vertex] {
+            let current_distance = distances[edge.target];
+            let new_distance = distances[current_vertex.vertex] + edge.weight;
+
+            distances[edge.target] = min(current_distance, new_distance);
+
+            if !visit_statuses[edge.target] {
+                priority_queue.push(PriorityQueueItem {
+                    distance: distances[edge.target],
+                    vertex: edge.target
+                });
+            }
+        }
+    }
+
+    return u32::MAX;
+}
+
+fn calculate_distance_find_max(graph: &Vec<Vec<Edge>>, source: usize, target: usize) -> u32 {
     let mut distances = vec![u32::MAX; graph.len()];
     let mut visit_statuses = vec![false; graph.len()];
     let mut current_vertex = source;
