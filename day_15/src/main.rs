@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::cmp::{min, Ordering};
+use std::cmp::{max, min, Ordering};
 use std::collections::BinaryHeap;
 
 /*
@@ -16,10 +16,16 @@ struct Edge {
     target: usize
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd)]
+#[derive(Debug, PartialEq, Eq)]
 struct PriorityQueueItem {
     distance: u32,
     vertex: usize
+}
+
+impl PartialOrd for PriorityQueueItem {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Option::from(self.distance.cmp(&other.distance).reverse())
+    }
 }
 
 impl Ord for PriorityQueueItem {
@@ -29,7 +35,7 @@ impl Ord for PriorityQueueItem {
 }
 
 fn main() {
-    let input = File::open("D:\\source\\Rust\\AoC 2021\\day_15\\src\\medium_input.txt").unwrap();
+    let input = File::open("D:\\source\\Rust\\AoC 2021\\day_15\\src\\big_input.txt").unwrap();
     let mut reader = BufReader::new(input);
     let mut buffer = String::new();
     let mut risk_level_map = Vec::new();
@@ -45,8 +51,40 @@ fn main() {
         buffer.clear();
     }
 
-    let graph = build_graph(&risk_level_map);
-    println!("The distance between source and destination: {}", calculate_distance_priority_queue(&graph, 0, graph.len() - 1));
+    let enlarged_risk_level_map = enlarge_map(&risk_level_map, 5);
+    let graph = build_graph(&enlarged_risk_level_map);
+    let distance = calculate_distance_priority_queue(&graph, 0, graph.len() - 1);
+    println!("The distance between source and destination: {}", distance);
+}
+
+fn enlarge_map(base_map: &Vec<Vec<u8>>, enlargement_factor: usize) -> Vec<Vec<u8>> {
+    let row_count_base = base_map.len();
+    let column_count_base = base_map[0].len();
+    let rows_count = base_map.len()*enlargement_factor;
+    let columns_count= base_map.len()*enlargement_factor;
+    let mut enlarged_map = vec![vec![0; columns_count]; rows_count];
+
+    for row_idx in 0..base_map.len() {
+        enlarged_map[row_idx][0..base_map.len()].copy_from_slice(&base_map[row_idx]);
+    }
+
+    for row_idx in row_count_base..enlarged_map.len() {
+        for column_idx in 0..column_count_base {
+            let enlarged_value = (enlarged_map[row_idx - row_count_base][column_idx] + 1) % 10;
+
+            enlarged_map[row_idx][column_idx] = max(enlarged_value, 1);
+        }
+    }
+
+    for row_idx in 0..enlarged_map.len() {
+        for column_idx in column_count_base..enlarged_map[0].len() {
+            let enlarged_value = (enlarged_map[row_idx][column_idx - column_count_base] + 1) % 10;
+
+            enlarged_map[row_idx][column_idx] = max(enlarged_value, 1);
+        }
+    }
+
+    return enlarged_map;
 }
 
 fn build_graph(risk_level_map : &Vec<Vec<u8>>) -> Vec<Vec<Edge>> {
@@ -100,7 +138,6 @@ fn build_graph(risk_level_map : &Vec<Vec<u8>>) -> Vec<Vec<Edge>> {
 fn calculate_distance_priority_queue(graph: &Vec<Vec<Edge>>, source: usize, target: usize) -> u32 {
     let mut distances = vec![u32::MAX; graph.len()];
     let mut visit_statuses = vec![false; graph.len()];
-    let mut current_vertex = source;
     let mut priority_queue = BinaryHeap::with_capacity(graph.len());
 
     distances[source] = 0;
@@ -111,6 +148,10 @@ fn calculate_distance_priority_queue(graph: &Vec<Vec<Edge>>, source: usize, targ
 
     while !priority_queue.is_empty() {
         let current_vertex = priority_queue.pop().expect("Pop must work on not empty queue");
+
+        if visit_statuses[current_vertex.vertex] {
+            continue;
+        }
 
         if current_vertex.vertex == target {
             return current_vertex.distance;
